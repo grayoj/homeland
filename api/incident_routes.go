@@ -9,4 +9,5 @@ import (
 
 func RegisterIncidentRoutes(r chi.Router, db *bun.DB) {
 	r.Post("/incidents", incident.CreateIncidentHandler(db))
+	r.Get("/incidents", incident.GetIncidents(db))
 }

@@ -68,6 +68,15 @@ func createTables(db *bun.DB) error {
 	if err != nil {
 		return err
 	}
+
+	_, err = db.NewCreateTable().
+		Model((*models.Incident)(nil)).
+		IfNotExists().
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
 	log.Println("Tables created or already exist.")
 	return nil
 }
