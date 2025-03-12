@@ -48,6 +48,7 @@ func main() {
 
 			routes.RegisterAdminRoutes(r, db, cfg)
 			routes.RegisterStaffRoutes(r, db)
+			routes.RegisterIncidentRoutes(r, db)
 		})
 	})
 
