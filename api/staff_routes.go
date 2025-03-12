@@ -10,6 +10,7 @@ import (
 func RegisterStaffRoutes(r chi.Router, db *bun.DB) {
 	r.Route("/staff", func(r chi.Router) {
 		r.Get("/{id}", staff.GetStaffHandler(db))
+		r.Get("/all", staff.GetAllStaffHandler(db))
 		r.Put("/{id}", staff.UpdateStaffHandler(db))
 		r.Delete("/{id}", staff.DeleteStaffHandler(db))
 	})
