@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS staff;
+DDROP TABLE IF EXISTS incidents;
