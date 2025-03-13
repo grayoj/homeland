@@ -14,6 +14,7 @@ const (
 	PositionIT         PositionEnum = "IT"
 	PositionCallCenter PositionEnum = "Call Center"
 	PositionStaff      PositionEnum = "Staff"
+	PositionHR         PositionEnum = "HR"
 )
 
 type DepartmentEnum string

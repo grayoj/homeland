@@ -11,9 +11,10 @@ import (
 type contextKey string
 
 type Claims struct {
-	UserID int64  `json:"user_id"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
+	UserID     int64  `json:"user_id"`
+	Email      string `json:"email"`
+	Role       string `json:"role"`
+	Department string `json:"department"`
 	jwt.RegisteredClaims
 }
 
@@ -84,4 +85,9 @@ func GetUserIDFromContext(ctx context.Context) (int64, error) {
 		return 0, fmt.Errorf("no user claims found in context")
 	}
 	return claims.UserID, nil
+}
+
+func GetUserFromContext(ctx context.Context) *Claims {
+	claims, _ := ctx.Value(ContextKeyClaims).(*Claims)
+	return claims
 }
