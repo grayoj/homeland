@@ -50,6 +50,7 @@ func main() {
 			routes.RegisterStaffRoutes(r, db)
 			routes.RegisterIncidentRoutes(r, db)
 			routes.RegisterWorkplaceRoutes(r, db)
+			routes.RegisterReportingRoutes(r, db)
 		})
 	})
 
