@@ -15,4 +15,9 @@ func RegisterWorkplaceRoutes(r chi.Router, db *bun.DB) {
 		r.Put("/{id}", workplace.UpdateAppointment(db))
 		r.Delete("/{id}", workplace.DeleteAppointment(db))
 	})
+	r.Route("/documents", func(r chi.Router) {
+		r.Post("/upload", workplace.UploadDocument(db))
+		r.Get("/", workplace.GetDocuments(db))
+		r.Get("/{id}", workplace.GetDocumentByID(db))
+	})
 }
