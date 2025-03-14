@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"homeland/models"
@@ -44,13 +45,50 @@ func CreateAVSReport(db *bun.DB) http.HandlerFunc {
 
 func GetAVSReports(db *bun.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil || limit <= 0 {
+			limit = 10
+		}
+
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil || offset < 0 {
+			offset = 0
+		}
+
 		var reports []models.AVSReport
-		err := db.NewSelect().Model(&reports).Scan(context.Background())
+
+		err = db.NewSelect().Model(&reports).
+			Limit(limit).
+			Offset(offset).
+			Order("date_reported DESC").
+			Scan(ctx)
+
 		if err != nil {
 			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch AVS reports")
 			return
 		}
-		utils.RespondWithJSON(w, http.StatusOK, reports)
+
+		total, err := db.NewSelect().Model((*models.AVSReport)(nil)).Count(ctx)
+		if err != nil {
+			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve report count")
+			return
+		}
+
+		response := map[string]interface{}{
+			"status":  "success",
+			"message": "AVS reports retrieved successfully",
+			"data":    reports,
+			"pagination": map[string]int{
+				"total":  total,
+				"limit":  limit,
+				"offset": offset,
+			},
+		}
+
+		utils.RespondWithJSON(w, http.StatusOK, response)
 	}
 }
 
