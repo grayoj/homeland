@@ -3,7 +3,9 @@ package workplace
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"homeland/models"
@@ -51,13 +53,52 @@ func UploadDocument(db *bun.DB) http.HandlerFunc {
 
 func GetDocuments(db *bun.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil || limit <= 0 {
+			limit = 10
+		}
+
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil || offset < 0 {
+			offset = 0
+		}
+
 		var docs []models.Document
-		err := db.NewSelect().Model(&docs).Scan(context.Background())
+
+		err = db.NewSelect().Model(&docs).
+			Limit(limit).
+			Offset(offset).
+			Order("created_at DESC").
+			Scan(ctx)
+
 		if err != nil {
-			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch documents")
+			log.Printf("DB error: %v", err)
+
+			if ctx.Err() == context.DeadlineExceeded {
+				utils.RespondWithError(w, http.StatusGatewayTimeout, "Database request timed out. Please try again later.")
+				return
+			}
+
+			utils.RespondWithError(w, http.StatusInternalServerError, "An unexpected error occurred while fetching documents.")
 			return
 		}
-		utils.RespondWithJSON(w, http.StatusOK, docs)
+
+		total, err := db.NewSelect().Model((*models.Document)(nil)).Count(ctx)
+		if err != nil {
+			log.Printf("Count query error: %v", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch document count.")
+			return
+		}
+
+		response := map[string]interface{}{
+			"data":       docs,
+			"pagination": map[string]int{"total": total, "limit": limit, "offset": offset},
+		}
+
+		utils.RespondWithJSON(w, http.StatusOK, response)
 	}
 }
 

@@ -50,13 +50,44 @@ func CreateAppointment(db *bun.DB) http.HandlerFunc {
 
 func GetAppointments(db *bun.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil || limit <= 0 {
+			limit = 10
+		}
+
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil || offset < 0 {
+			offset = 0
+		}
+
 		var appointments []models.Appointment
-		err := db.NewSelect().Model(&appointments).Scan(context.Background())
+
+		err = db.NewSelect().Model(&appointments).
+			Limit(limit).
+			Offset(offset).
+			Order("created_at DESC").
+			Scan(ctx)
+
 		if err != nil {
 			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch appointments")
 			return
 		}
-		utils.RespondWithJSON(w, http.StatusOK, appointments)
+
+		total, err := db.NewSelect().Model((*models.Appointment)(nil)).Count(ctx)
+		if err != nil {
+			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to fetch appointment count")
+			return
+		}
+
+		response := map[string]interface{}{
+			"data":       appointments,
+			"pagination": map[string]int{"total": total, "limit": limit, "offset": offset},
+		}
+
+		utils.RespondWithJSON(w, http.StatusOK, response)
 	}
 }
 
